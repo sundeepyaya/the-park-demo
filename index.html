@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE PARK — Home Scroll Animation Spec</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background: #111;
+    overflow: hidden;           /* scroll is intercepted — one gesture = one transition */
+    display: flex;
+    justify-content: center;
+  }
+
+  /* ---------- fixed stage, 1440 wide ---------- */
+  .stage {
+    position: relative;
+    width: 1440px;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ---------- STICKY NAV — 1440 x 80, white ---------- */
+  .nav {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1440px;
+    height: 80px;
+    background: #ffffff;
+    z-index: 50;
+    transform: translateY(-80px);           /* hidden until scroll triggers */
+    transition: transform 1.8s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+  }
+  .stage.locked .nav { transform: translateY(0); }
+
+  /* ---------- WORLD: hero + green, slides up on lock ---------- */
+  .world {
+    position: absolute;
+    top: 0; left: 0;
+    width: 1440px;
+    transition: transform 1.8s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* lock: green section top goes from y=810 to y=80 (just under nav)  =>  -730px */
+  .stage.locked .world { transform: translateY(-730px); }
+
+  .hero {
+    width: 1440px;
+    height: 810px;
+    background: #EA9379;                    /* peach */
+    position: relative;
+  }
+
+  .section-2 {
+    width: 1442px;
+    height: 728px;
+    background: #D8E5CA;                    /* pistachio */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(0,0,0,0.35);
+    font-size: 24px;
+    letter-spacing: 0.1em;
+  }
+
+  /* ---------- LOGO — 1280 x 168, white, docks to nav at 150px ---------- */
+  .logo {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1280px;
+    height: 168px;
+    z-index: 60;
+    color: #ffffff;                          /* logo is white */
+    will-change: transform, filter;
+    /* start: centred in hero  (hero centre y = 405) */
+    transform: translate(-50%, 321px) scale(1);   /* 405 - 168/2 = 321 */
+    transition: transform 1.8s cubic-bezier(0.22, 1, 0.36, 1),
+                color     1.8s cubic-bezier(0.22, 1, 0.36, 1);
+    filter: blur(24px);                      /* load reveal handled by JS */
+    transform-origin: center top;
+  }
+  /* docked: centred in nav (nav centre y = 40), width 150px  => scale 150/1280 */
+  .stage.locked .logo {
+    /* scaled height = 168 * 0.1171875 = 19.6875 ; top = 40 - 19.6875/2 = 30.16 */
+    transform: translate(-50%, 30.16px) scale(0.1171875);
+    color: #111111;   /* flips dark on the white nav — change to #fff if truly white-on-white */
+  }
+
+  .logo svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .logo text {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    fill: currentColor;
+  }
+
+  /* ---------- SPEC HUD ---------- */
+  .hud {
+    position: fixed;
+    left: 16px; bottom: 16px;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    font: 12px/1.7 "SF Mono", Menlo, Consolas, monospace;
+    padding: 12px 16px;
+    border-radius: 10px;
+    z-index: 100;
+    min-width: 280px;
+  }
+  .hud b { color: #F9C6D0; }
+
+  .spec-note {
+    position: absolute;
+    top: 100px; left: 24px;
+    font: 12px/1.6 "SF Mono", Menlo, Consolas, monospace;
+    color: rgba(0,0,0,0.45);
+    z-index: 5;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+
+  <!-- STICKY NAV — 1440 x 80, white. Logo docks to its centre. -->
+  <header class="nav"></header>
+
+  <!-- LOGO — 1280 x 168, white. Fixed layer so it can travel hero-centre -> nav-centre -->
+  <div class="logo" id="logo">
+    <!-- THE PARK logo SVG — fill follows .logo color (white in hero, dark when docked) -->
+    <svg viewBox="0 0 1629.21 210.22" preserveAspectRatio="xMidYMid meet" aria-label="THE PARK" fill="currentColor">
+      <path d="M870.21,0h-67.6c11.51,14.01,11.21,30.22,11.21,48.64v161.58h40.11c-10.09-11.47-11.18-27.42-11.18-48.64v-39.17h16.42c62.57,0,97.02-23.16,97.02-65.22C956.18,31.22,941.27,0,870.21,0ZM865.34,103.56h-22.4V18.85h18.49c44.71,0,64.64,12.8,64.64,41.48s-19.87,43.23-60.74,43.23Z"/>
+      <path d="M1370.7,171.68l-27.4-45.56c-5.43-8.9-10.86-16.36-22.08-21.14,31.05-8.14,48.07-27,48.07-53.47,0-21.08-10.67-35.88-31.69-43.97C1320.07.78,1298.42,0,1283.65,0h-58.82c11.06,13.85,11.21,30.22,11.21,48.64v161.58h40.1c-10.46-13.58-11.19-27.42-11.19-48.64v-51.71h12.52c19.83,0,24.95,5.01,31.91,16.46l51.79,83.89h38.68v-1.63c-11.29-10.22-19.8-21.85-29.15-36.91ZM1282.35,92.17h-17.2V18.93h12.97c30.2,0,61.07,3.59,61.07,35.14,0,25.98-18.06,38.09-56.84,38.09Z"/>
+      <path d="M1151.35,153.62L1092.15,0h-30.95c1.09,3.02,1.52,5.82,1.52,7.75,0,5.36-1.71,9.91-4.11,15.73l-67.28,159.54c-3.04,7.12-7.39,16.54-13.13,27.2h41.58c-4.22-5.84-6.15-12.44-6.15-18.33,0-6.74,2.34-15.09,7.36-26.31l10.62-25.43h83.88l16.86,43.38c4.17,11.37,7.35,21.33,8.68,26.69h39.33v-1.63c-9.22-9.4-19.27-29.22-29.03-54.97ZM1039.65,121.87l36.47-86.22,32.46,86.22h-68.92Z"/>
+      <path d="M183.56,33.23h3.14L181.71,0H4.63L0,33.23h3.13c16.86-12.31,33.49-14.58,65.83-14.58h9.92v191.57h39.72c-9.9-13.05-11.12-28.84-11.12-48.64V18.65h10.24c32.08,0,48.65,2.26,65.84,14.58"/>
+      <path d="M404.47,210.22h40.11c-9.95-12.21-11.19-27.42-11.19-48.64V0h-40.13c10.64,13.17,11.21,30.22,11.21,48.64v46.86h-125.04V0h-40.13c11.83,15.18,11.21,30.22,11.21,48.64v161.58h40.11c-9.86-12.62-11.19-27.42-11.19-48.64v-47.43h125.04v96.07Z"/>
+      <path d="M646.25,210.22l4.66-30.94h-3.47c-14.29,10.29-31.02,12.3-62.26,12.3h-32.22c-3.92-8.93-4.68-19.54-4.68-35.71v-47.15h28.12c25.3,0,39.55,3.45,49.89,9.71v-27.5h-78.01V18.65h28.44c32.44,0,45.98,1.82,60.02,11.15h3.13L635.19,0h-127.03c11.67,14.58,11.2,30.22,11.2,48.64v161.58h126.89Z"/>
+      <path d="M1629.21,210.22v-3.2c-11.64-8.78-20.06-18.16-34.14-35.5l-70.96-85.87L1612.7,1.63V0h-49.79v1.63c3.08,3.08,4.17,6.13,4.17,9.17,0,6.65-4.86,12.64-11.51,19.05l-68.07,63.75V0h-40.14c11.23,13.55,11.21,30.22,11.21,48.64v161.58h40.11c-9.86-14.23-11.18-27.42-11.18-48.64v-44.89c0-7,3.45-10.55,10.24-10.55s11.02,3.6,16.75,10.62l76.82,93.46h37.9Z"/>
+    </svg>
+  </div>
+
+  <div class="world" id="world">
+    <!-- BLOCK 01 — 1440 x 810, pink -->
+    <section class="hero"></section>
+
+    <!-- BLOCK 02 — 1442 x 728, pistachio : locks to top (under nav) -->
+    <section class="section-2"></section>
+  </div>
+
+  <!-- HUD -->
+  <div class="hud">
+    state&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <b id="v-state">HERO</b><br>
+    logo width : <b id="v-lw">1280</b>px<br>
+    nav&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <b id="v-nav">hidden</b><br>
+    green&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: <b id="v-green">y 810</b><br>
+    <span style="color:#666">scroll down = dock · scroll up = reverse</span>
+  </div>
+
+</div>
+
+<script>
+  /* ================= ANIMATION SPEC =================
+     LOAD  : logo blur 24px -> 0 over 1.2s (ease-out), centred in pink block
+     SCROLL DOWN (any amount, fires immediately, plays fully):
+        simultaneously, 0.9s, cubic-bezier(0.22,1,0.36,1)
+        1. logo: hero centre -> nav centre, 1280px -> 150px wide
+        2. white nav (1440x80) slides into view at top
+        3. green block (1442x728) slides up and LOCKS to top, under nav
+     SCROLL UP (when locked): full reverse
+  =================================================== */
+
+  const stage = document.getElementById('stage');
+  const logo  = document.getElementById('logo');
+
+  const vState = document.getElementById('v-state');
+  const vLw    = document.getElementById('v-lw');
+  const vNav   = document.getElementById('v-nav');
+  const vGreen = document.getElementById('v-green');
+
+  let locked = false;
+  let animating = false;
+
+  /* ---- load reveal: blur 24 -> 0 ---- */
+  const LOAD_DURATION = 1200;
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+  const t0 = performance.now();
+  (function reveal(now) {
+    const p = Math.min(((now || performance.now()) - t0) / LOAD_DURATION, 1);
+    logo.style.filter = `blur(${24 * (1 - easeOut(p))}px)`;
+    if (p < 1) requestAnimationFrame(reveal);
+  })();
+
+  /* ---- scroll trigger: any amount immediately runs the full transition ---- */
+  function setState(toLocked) {
+    if (animating || locked === toLocked) return;
+    locked = toLocked;
+    animating = true;
+    stage.classList.toggle('locked', locked);
+
+    vState.textContent = locked ? 'LOCKED' : 'HERO';
+    vLw.textContent    = locked ? '150' : '1280';
+    vNav.textContent   = locked ? 'stuck @ top' : 'hidden';
+    vGreen.textContent = locked ? 'locked @ y 80 (under nav)' : 'y 810';
+
+    setTimeout(() => { animating = false; }, 1850);
+  }
+
+  window.addEventListener('wheel', e => {
+    if (e.deltaY > 0) setState(true);
+    else if (e.deltaY < 0) setState(false);
+  }, { passive: true });
+
+  /* touch + keyboard support */
+  let touchY = null;
+  window.addEventListener('touchstart', e => { touchY = e.touches[0].clientY; }, { passive: true });
+  window.addEventListener('touchmove', e => {
+    if (touchY === null) return;
+    const dy = touchY - e.touches[0].clientY;
+    if (dy > 8) setState(true);
+    else if (dy < -8) setState(false);
+  }, { passive: true });
+  window.addEventListener('keydown', e => {
+    if (['ArrowDown', 'PageDown', ' '].includes(e.key)) setState(true);
+    if (['ArrowUp', 'PageUp'].includes(e.key)) setState(false);
+  });
+</script>
+</body>
+</html>
